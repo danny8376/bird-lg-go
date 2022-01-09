@@ -50,19 +50,30 @@ jobs:
   docker-frontend:
     docker:
       - image: circleci/golang:1.16
+    environment:
+      BUILDX_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7
     working_directory: /go/src/github.com/xddxdd/bird-lg-go/frontend
     steps:
       - checkout
       - setup_remote_docker:
           version: 20.10.11
       - run:
-          name: Enable experimental features
+          name: Install buildx
           command: |
-            ssh remote-docker \<<EOF
-              sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
-              sudo systemctl restart docker
-              sudo docker info
-            EOF
+            BUILDX_BINARY_URL="https://github.com/docker/buildx/releases/download/v0.7.1/buildx-v0.7.1.linux-amd64"
+
+            curl --output docker-buildx \
+              --silent --show-error --location --fail --retry 3 \
+              "$BUILDX_BINARY_URL"
+
+            mkdir -p ~/.docker/cli-plugins
+
+            mv docker-buildx ~/.docker/cli-plugins/
+            chmod a+x ~/.docker/cli-plugins/docker-buildx
+
+            docker buildx install
+            # Run binfmt
+            docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
       - run:
           name: Build Docker image
           environment:
@@ -73,30 +84,41 @@ jobs:
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker buildx create --name mybuilder --use
             docker buildx build \
-              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lg-go:circleci-build$BUILD_ID \
               .
             docker buildx build \
-              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lg-go:latest \
               .
 
   docker-frontend-deploy:
     docker:
       - image: circleci/golang:1.16
+    environment:
+      BUILDX_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7
     working_directory: /go/src/github.com/xddxdd/bird-lg-go/frontend
     steps:
       - checkout
       - setup_remote_docker:
           version: 20.10.11
       - run:
-          name: Enable experimental features
+          name: Install buildx
           command: |
-            ssh remote-docker \<<EOF
-              sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
-              sudo systemctl restart docker
-              sudo docker info
-            EOF
+            BUILDX_BINARY_URL="https://github.com/docker/buildx/releases/download/v0.7.1/buildx-v0.7.1.linux-amd64"
+
+            curl --output docker-buildx \
+              --silent --show-error --location --fail --retry 3 \
+              "$BUILDX_BINARY_URL"
+
+            mkdir -p ~/.docker/cli-plugins
+
+            mv docker-buildx ~/.docker/cli-plugins/
+            chmod a+x ~/.docker/cli-plugins/docker-buildx
+
+            docker buildx install
+            # Run binfmt
+            docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
       - run:
           name: Build Docker image
           environment:
@@ -107,30 +129,41 @@ jobs:
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker buildx create --name mybuilder --use
             docker buildx build \
-              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lg-go:circleci-build$BUILD_ID \
               --push .
             docker buildx build \
-              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lg-go:latest \
               --push .
 
   docker-proxy:
     docker:
       - image: circleci/golang:1.16
+    environment:
+      BUILDX_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7
     working_directory: /go/src/github.com/xddxdd/bird-lg-go/proxy
     steps:
       - checkout
       - setup_remote_docker:
           version: 20.10.11
       - run:
-          name: Enable experimental features
+          name: Install buildx
           command: |
-            ssh remote-docker \<<EOF
-              sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
-              sudo systemctl restart docker
-              sudo docker info
-            EOF
+            BUILDX_BINARY_URL="https://github.com/docker/buildx/releases/download/v0.7.1/buildx-v0.7.1.linux-amd64"
+
+            curl --output docker-buildx \
+              --silent --show-error --location --fail --retry 3 \
+              "$BUILDX_BINARY_URL"
+
+            mkdir -p ~/.docker/cli-plugins
+
+            mv docker-buildx ~/.docker/cli-plugins/
+            chmod a+x ~/.docker/cli-plugins/docker-buildx
+
+            docker buildx install
+            # Run binfmt
+            docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
       - run:
           name: Build Docker image
           environment:
@@ -141,30 +174,41 @@ jobs:
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker buildx create --name mybuilder --use
             docker buildx build \
-              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lgproxy-go:circleci-build$BUILD_ID \
               .
             docker buildx build \
-              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lgproxy-go:latest \
               .
 
   docker-proxy-deploy:
     docker:
       - image: circleci/golang:1.16
+    environment:
+      BUILDX_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7
     working_directory: /go/src/github.com/xddxdd/bird-lg-go/proxy
     steps:
       - checkout
       - setup_remote_docker:
           version: 20.10.11
       - run:
-          name: Enable experimental features
+          name: Install buildx
           command: |
-            ssh remote-docker \<<EOF
-              sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
-              sudo systemctl restart docker
-              sudo docker info
-            EOF
+            BUILDX_BINARY_URL="https://github.com/docker/buildx/releases/download/v0.7.1/buildx-v0.7.1.linux-amd64"
+
+            curl --output docker-buildx \
+              --silent --show-error --location --fail --retry 3 \
+              "$BUILDX_BINARY_URL"
+
+            mkdir -p ~/.docker/cli-plugins
+
+            mv docker-buildx ~/.docker/cli-plugins/
+            chmod a+x ~/.docker/cli-plugins/docker-buildx
+
+            docker buildx install
+            # Run binfmt
+            docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
       - run:
           name: Build Docker image
           environment:
@@ -175,10 +219,10 @@ jobs:
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker buildx create --name mybuilder --use
             docker buildx build \
-              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lgproxy-go:circleci-build$BUILD_ID \
               --push .
             docker buildx build \
-              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lgproxy-go:latest \
               --push .
