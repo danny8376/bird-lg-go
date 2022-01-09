@@ -4,16 +4,35 @@ workflows:
   docker:
     jobs:
       - build
-      - deploy:
+      - docker-frontend:
           context:
             - docker
           requires:
             - build
-          matrix:
-            parameters:
-              program: [frontend, proxy]
-              # latest is amd64 arch + push to default latest tag
-              image_arch: [latest, i386, arm32v7, arm64v8, ppc64le, s390x]
+          filters:
+            branches:
+              ignore: master
+      - docker-frontend-deploy:
+          context:
+            - docker
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+      - docker-proxy:
+          context:
+            - docker
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: master
+      - docker-proxy-deploy:
+          context:
+            - docker
+          requires:
+            - build
           filters:
             branches:
               only: master
@@ -27,33 +46,139 @@ jobs:
       - checkout
       - run: GO111MODULE=auto go get -v -t -d ./...
       - run: GO111MODULE=auto go test -v ./...
-  deploy:
+
+  docker-frontend:
     docker:
       - image: circleci/golang:1.16
-    working_directory: /go/src/github.com/xddxdd/bird-lg-go
-    parameters:
-      image_arch:
-        type: string
-      program:
-        type: string
+    working_directory: /go/src/github.com/xddxdd/bird-lg-go/frontend
     steps:
       - checkout
       - setup_remote_docker:
-          version: 19.03.13
+          version: 20.10.11
       - run:
-          name: Install GPP
+          name: Enable experimental features
           command: |
-            sudo apt-get update && sudo apt-get install -y gpp
+            ssh remote-docker \<<EOF
+              sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
+              sudo systemctl restart docker
+              sudo docker info
+            EOF
       - run:
           name: Build Docker image
           environment:
-            IMAGE_ARCH: << parameters.image_arch >>
-            PROGRAM: << parameters.program >>
             BUILD_ID: << pipeline.number >>
           command: |
-            make -f Makefile.docker _crossbuild
+            export DOCKER_CLI_EXPERIMENTAL=enabled
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-            make -f Makefile.docker \
-                 DOCKER_USERNAME=$DOCKER_USERNAME \
-                 BUILD_ID=circleci-build$BUILD_ID \
-                 $PROGRAM/$IMAGE_ARCH
+            docker buildx create --name mybuilder --use
+            docker buildx build \
+              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              -t $DOCKER_USERNAME/bird-lg-go:circleci-build$BUILD_ID \
+              .
+            docker buildx build \
+              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              -t $DOCKER_USERNAME/bird-lg-go:latest \
+              .
+
+  docker-frontend-deploy:
+    docker:
+      - image: circleci/golang:1.16
+    working_directory: /go/src/github.com/xddxdd/bird-lg-go/frontend
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.11
+      - run:
+          name: Enable experimental features
+          command: |
+            ssh remote-docker \<<EOF
+              sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
+              sudo systemctl restart docker
+              sudo docker info
+            EOF
+      - run:
+          name: Build Docker image
+          environment:
+            BUILD_ID: << pipeline.number >>
+          command: |
+            export DOCKER_CLI_EXPERIMENTAL=enabled
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+            docker buildx create --name mybuilder --use
+            docker buildx build \
+              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              -t $DOCKER_USERNAME/bird-lg-go:circleci-build$BUILD_ID \
+              --push .
+            docker buildx build \
+              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              -t $DOCKER_USERNAME/bird-lg-go:latest \
+              --push .
+
+  docker-proxy:
+    docker:
+      - image: circleci/golang:1.16
+    working_directory: /go/src/github.com/xddxdd/bird-lg-go/proxy
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.11
+      - run:
+          name: Enable experimental features
+          command: |
+            ssh remote-docker \<<EOF
+              sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
+              sudo systemctl restart docker
+              sudo docker info
+            EOF
+      - run:
+          name: Build Docker image
+          environment:
+            BUILD_ID: << pipeline.number >>
+          command: |
+            export DOCKER_CLI_EXPERIMENTAL=enabled
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+            docker buildx create --name mybuilder --use
+            docker buildx build \
+              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              -t $DOCKER_USERNAME/bird-lgproxy-go:circleci-build$BUILD_ID \
+              .
+            docker buildx build \
+              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              -t $DOCKER_USERNAME/bird-lgproxy-go:latest \
+              .
+
+  docker-proxy-deploy:
+    docker:
+      - image: circleci/golang:1.16
+    working_directory: /go/src/github.com/xddxdd/bird-lg-go/proxy
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.11
+      - run:
+          name: Enable experimental features
+          command: |
+            ssh remote-docker \<<EOF
+              sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
+              sudo systemctl restart docker
+              sudo docker info
+            EOF
+      - run:
+          name: Build Docker image
+          environment:
+            BUILD_ID: << pipeline.number >>
+          command: |
+            export DOCKER_CLI_EXPERIMENTAL=enabled
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+            docker buildx create --name mybuilder --use
+            docker buildx build \
+              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              -t $DOCKER_USERNAME/bird-lgproxy-go:circleci-build$BUILD_ID \
+              --push .
+            docker buildx build \
+              --platform linux/amd64,linux/arm64,linux/386,linux/arm/v7 \
+              -t $DOCKER_USERNAME/bird-lgproxy-go:latest \
+              --push .
