@@ -40,23 +40,20 @@ workflows:
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.16
-    working_directory: /go/src/github.com/xddxdd/bird-lg-go
+      - image: cimg/go:1.17
+    working_directory: /home/circleci/go/src/github.com/xddxdd/bird-lg-go
     steps:
       - checkout
       - run: GO111MODULE=auto go get -v -t -d ./...
       - run: GO111MODULE=auto go test -v ./...
 
   docker-frontend:
-    docker:
-      - image: circleci/golang:1.16
+    machine:
+      image: ubuntu-2004:202111-02
     environment:
       BUILDX_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7
-    working_directory: /go/src/github.com/xddxdd/bird-lg-go/frontend
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 20.10.11
       - run:
           name: Install buildx
           command: |
@@ -73,35 +70,27 @@ jobs:
 
             docker buildx install
             # Run binfmt
-            docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
       - run:
           name: Build Docker image
           environment:
             BUILD_ID: << pipeline.number >>
           command: |
-            export DOCKER_CLI_EXPERIMENTAL=enabled
-            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker buildx create --name mybuilder --use
             docker buildx build \
               --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lg-go:circleci-build$BUILD_ID \
-              .
-            docker buildx build \
-              --platform $BUILDX_PLATFORMS \
-              -t $DOCKER_USERNAME/bird-lg-go:latest \
-              .
+              --progress plain \
+              frontend
 
   docker-frontend-deploy:
-    docker:
-      - image: circleci/golang:1.16
+    machine:
+      image: ubuntu-2004:202111-02
     environment:
       BUILDX_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7
-    working_directory: /go/src/github.com/xddxdd/bird-lg-go/frontend
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 20.10.11
       - run:
           name: Install buildx
           command: |
@@ -118,35 +107,32 @@ jobs:
 
             docker buildx install
             # Run binfmt
-            docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
       - run:
           name: Build Docker image
           environment:
             BUILD_ID: << pipeline.number >>
           command: |
-            export DOCKER_CLI_EXPERIMENTAL=enabled
-            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker buildx create --name mybuilder --use
             docker buildx build \
               --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lg-go:circleci-build$BUILD_ID \
-              --push .
+              --progress plain \
+              --push frontend
             docker buildx build \
               --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lg-go:latest \
-              --push .
+              --progress plain \
+              --push frontend
 
   docker-proxy:
-    docker:
-      - image: circleci/golang:1.16
+    machine:
+      image: ubuntu-2004:202111-02
     environment:
       BUILDX_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7
-    working_directory: /go/src/github.com/xddxdd/bird-lg-go/proxy
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 20.10.11
       - run:
           name: Install buildx
           command: |
@@ -163,35 +149,27 @@ jobs:
 
             docker buildx install
             # Run binfmt
-            docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
       - run:
           name: Build Docker image
           environment:
             BUILD_ID: << pipeline.number >>
           command: |
-            export DOCKER_CLI_EXPERIMENTAL=enabled
-            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker buildx create --name mybuilder --use
             docker buildx build \
               --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lgproxy-go:circleci-build$BUILD_ID \
-              .
-            docker buildx build \
-              --platform $BUILDX_PLATFORMS \
-              -t $DOCKER_USERNAME/bird-lgproxy-go:latest \
-              .
+              --progress plain \
+              proxy
 
   docker-proxy-deploy:
-    docker:
-      - image: circleci/golang:1.16
+    machine:
+      image: ubuntu-2004:202111-02
     environment:
       BUILDX_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm/v7
-    working_directory: /go/src/github.com/xddxdd/bird-lg-go/proxy
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 20.10.11
       - run:
           name: Install buildx
           command: |
@@ -208,21 +186,20 @@ jobs:
 
             docker buildx install
             # Run binfmt
-            docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
       - run:
           name: Build Docker image
           environment:
             BUILD_ID: << pipeline.number >>
           command: |
-            export DOCKER_CLI_EXPERIMENTAL=enabled
-            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker buildx create --name mybuilder --use
             docker buildx build \
               --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lgproxy-go:circleci-build$BUILD_ID \
-              --push .
+              --push proxy
             docker buildx build \
               --platform $BUILDX_PLATFORMS \
               -t $DOCKER_USERNAME/bird-lgproxy-go:latest \
-              --push .
+              --progress plain \
+              --push proxy
