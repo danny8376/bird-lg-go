@@ -43,6 +43,34 @@ func tracerouteHandler(httpW http.ResponseWriter, httpR *http.Request) {
 			return
 		}
 
+		hostname_idx := -1
+		for i, arg := range args {
+			switch {
+				case arg == "-4":
+					continue
+				case arg == "-6":
+					continue
+				case strings.HasPrefix(arg, "-"):
+					httpW.WriteHeader(http.StatusInternalServerError)
+					httpW.Write([]byte(fmt.Sprintf("arg now allowed: %s\n", arg)))
+					return
+				default:
+					if hostname_idx != -1 {
+						httpW.WriteHeader(http.StatusInternalServerError)
+						httpW.Write([]byte(fmt.Sprintf("arg now allowed: %s\n", arg)))
+						return
+					} else {
+						matched, _ := regexp.MatchString("^[a-zA-Z0-9-.]+$", arg)
+						if !matched {
+							httpW.WriteHeader(http.StatusInternalServerError)
+							httpW.Write([]byte(fmt.Sprintf("incorrect domain name: %s\n", arg)))
+							return
+						}
+						hostname_idx = i
+					}
+			}
+		}
+
 		var result []byte
 		var errString string
 		skippedCounter := 0
