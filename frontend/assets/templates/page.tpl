@@ -76,6 +76,7 @@
 
 <script src="/static/jsdelivr/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
 <script src="/static/jsdelivr/npm/bootstrap@4.5.1/dist/js/bootstrap.min.js" integrity="sha256-0IiaoZCI++9oAAvmCb5Y0r93XkuhvJpRalZLffQXLok=" crossorigin="anonymous"></script>
+<script src="/static/punycode.min.js" integrity="sha256-NJLhg7/Q6ujA6G8m8KPRb3/1zFZX2L54KZUgfP0oZsM=" crossorigin="anonymous" defer async></script>
 
 <script>
 function goto() {
@@ -88,6 +89,15 @@ function goto() {
 		url = "/" + action + "/" + target;
 	} else if (action == "summary") {
 		url = "/" + action + "/" + server + "/";
+	} else if (action == "traceroute" && window.punycode) {
+		target = target.split(" ").map(function (arg){
+			if (arg.includes(".") && !arg.match(/^[a-zA-Z0-9-.]+$/)) {
+				return punycode.ToASCII(arg);
+			} else {
+				return arg;
+			}
+		}).join(" ");
+		url = "/" + action + "/" + server + "/" + target;
 	} else {
 		url = "/" + action + "/" + server + "/" + target;
 	}
