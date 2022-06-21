@@ -60,7 +60,7 @@ func tracerouteHandler(httpW http.ResponseWriter, httpR *http.Request) {
 						httpW.Write([]byte(fmt.Sprintf("arg now allowed: %s\n", arg)))
 						return
 					} else {
-						matched, _ := regexp.MatchString("^[a-zA-Z0-9-.]+$", arg)
+						matched, _ := regexp.MatchString("^[a-zA-Z0-9-.]{1,254}$", arg)
 						if !matched {
 							httpW.WriteHeader(http.StatusInternalServerError)
 							httpW.Write([]byte(fmt.Sprintf("incorrect domain name: %s\n", arg)))
