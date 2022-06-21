@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"regexp"
 )
 
 // Read a line from bird socket, removing preceding status number, output it.
@@ -55,7 +56,8 @@ func birdWriteln(bird io.Writer, s string) {
 // Handles BIRDv4 queries
 func birdHandler(httpW http.ResponseWriter, httpR *http.Request) {
 	query := string(httpR.URL.Query().Get("q"))
-	if query == "" {
+	matched, _ := regexp.MatchString("^[ \t]*show[ \t]+[\\w-.:/]{1,200}$", query)
+	if !matched {
 		invalidHandler(httpW, httpR)
 	} else {
 		// Initialize BIRDv4 socket
