@@ -60,6 +60,16 @@ func birdHandler(httpW http.ResponseWriter, httpR *http.Request) {
 	if !matched {
 		invalidHandler(httpW, httpR)
 	} else {
+		matched, _ := regexp.MatchString("^[ \t]*show[ \t]+route[ \t]+", query)
+		matched2, _ := regexp.MatchString("^[ \t]*show[ \t]+route[ \t]+.*[table]", query)
+		if matched && !matched2 {
+			if strings.Contains(":") {
+				query += "table dn42v6"
+			} else {
+				query += "table dn42v4"
+			}
+		}
+
 		// Initialize BIRDv4 socket
 		bird, err := net.Dial("unix", setting.birdSocket)
 		if err != nil {
