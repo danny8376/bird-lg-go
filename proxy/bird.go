@@ -56,7 +56,7 @@ func birdWriteln(bird io.Writer, s string) {
 // Handles BIRDv4 queries
 func birdHandler(httpW http.ResponseWriter, httpR *http.Request) {
 	query := string(httpR.URL.Query().Get("q"))
-	matched, _ := regexp.MatchString("^[ \t]*show[ \t]+[\\w-.:/]{1,200}$", query)
+	matched, _ := regexp.MatchString("^[ \t]*show[ \t]+[\\w-.:/ ]{1,200}$", query)
 	if !matched {
 		invalidHandler(httpW, httpR)
 	} else {
