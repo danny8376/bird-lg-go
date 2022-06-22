@@ -60,7 +60,7 @@ func birdHandler(httpW http.ResponseWriter, httpR *http.Request) {
 	if !matched {
 		invalidHandler(httpW, httpR)
 	} else {
-		matched, _ := regexp.MatchString("^[ \t]*show[ \t]+route[ \t]+", query)
+		matched, _ := regexp.MatchString("^[ \t]*show[ \t]+route", query)
 		matched2, _ := regexp.MatchString("^[ \t]*show[ \t]+route[ \t]+.*[table]", query)
 		if matched && !matched2 {
             switch {
