@@ -63,10 +63,13 @@ func birdHandler(httpW http.ResponseWriter, httpR *http.Request) {
 		matched, _ := regexp.MatchString("^[ \t]*show[ \t]+route[ \t]+", query)
 		matched2, _ := regexp.MatchString("^[ \t]*show[ \t]+route[ \t]+.*[table]", query)
 		if matched && !matched2 {
-			if strings.Contains(query, ":") {
-				query += "table dn42v6"
-			} else {
+            switch {
+            case strings.Contains(query, "."):
 				query += "table dn42v4"
+            case strings.Contains(query, ":"):
+				query += "table dn42v6"
+            default:
+				query += "table dn42v4 table dn42v6"
 			}
 		}
 
