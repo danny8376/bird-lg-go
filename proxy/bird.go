@@ -65,11 +65,11 @@ func birdHandler(httpW http.ResponseWriter, httpR *http.Request) {
 		if matched && !matched2 {
             switch {
             case strings.Contains(query, "."):
-				query += "table dn42v4"
+				query += " table dn42v4"
             case strings.Contains(query, ":"):
-				query += "table dn42v6"
+				query += " table dn42v6"
             default:
-				query += "table dn42v4 table dn42v6"
+				query += " table dn42v4 table dn42v6"
 			}
 		}
 
